@@ -1,161 +1,317 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Salad, Brain, Activity, ShoppingBasket, Droplet, LineChart, Leaf, Mail, Sparkles } from "lucide-react";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { Leaf, Sparkles, Loader2, Download, RotateCcw } from "lucide-react";
+import jsPDF from "jspdf";
+import {
+  ACTIVITY_LEVELS, GOALS, FOOD_PREFERENCES, MEDICAL_CONDITIONS, GENDERS,
+  calcBMI, bmiCategory, type DayPlan,
+} from "@/lib/nutrition";
+import { generatePublicDietPlan } from "@/lib/public-diet.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "NutriPlan AI — Personalized AI Diet Plans" },
-      { name: "description", content: "Generate personalized 7, 14, or 30-day meal plans with AI. Track water, weight, and shopping — tailored to your goals and medical conditions." },
+      { name: "description", content: "Fill in your details and get a personalized AI meal plan instantly — no sign-up required." },
     ],
   }),
   component: Landing,
 });
 
-function Nav() {
-  return (
-    <header className="sticky top-0 z-40 backdrop-blur bg-background/70 border-b">
-      <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <div className="size-8 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-            <Leaf className="size-4" />
-          </div>
-          NutriPlan <span className="text-accent">AI</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-6 text-sm">
-          <a href="#features" className="hover:text-primary">Features</a>
-          <a href="#how" className="hover:text-primary">How it works</a>
-          <a href="#faq" className="hover:text-primary">FAQ</a>
-          <a href="#contact" className="hover:text-primary">Contact</a>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Link to="/auth"><Button variant="ghost" size="sm">Sign in</Button></Link>
-          <Link to="/auth"><Button size="sm">Get started</Button></Link>
-        </div>
-      </div>
-    </header>
-  );
-}
+type FormState = {
+  name: string; age: string; gender: string;
+  height_cm: string; weight_kg: string;
+  activity_level: string; goal: string;
+  food_preference: string; allergies: string; medical_conditions: string;
+  duration: "7" | "14" | "30";
+};
+
+const empty: FormState = {
+  name: "", age: "", gender: "Male", height_cm: "", weight_kg: "",
+  activity_level: "Moderate", goal: "Maintain Weight",
+  food_preference: "Non-Vegetarian", allergies: "", medical_conditions: "None",
+  duration: "7",
+};
+
+type Result = { bmi: number; days: DayPlan[]; goal: string; duration: number; name: string };
 
 function Landing() {
+  const gen = useServerFn(generatePublicDietPlan);
+  const [f, setF] = useState<FormState>(empty);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<Result | null>(null);
+
+  const h = parseFloat(f.height_cm) || 0;
+  const w = parseFloat(f.weight_kg) || 0;
+  const bmi = calcBMI(h, w);
+  const cat = bmiCategory(bmi);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!f.age || !h || !w) return toast.error("Please fill age, height and weight.");
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await gen({ data: {
+        name: f.name, age: parseInt(f.age), gender: f.gender,
+        height_cm: h, weight_kg: w,
+        activity_level: f.activity_level, goal: f.goal,
+        food_preference: f.food_preference,
+        allergies: f.allergies, medical_conditions: f.medical_conditions,
+        duration: Number(f.duration) as 7 | 14 | 30,
+      }});
+      setResult(res);
+      toast.success("Your plan is ready!");
+      setTimeout(() => document.getElementById("result")?.scrollIntoView({ behavior: "smooth" }), 100);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to generate plan");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function downloadPDF() {
+    if (!result) return;
+    const doc = new jsPDF();
+    let y = 15;
+    doc.setFontSize(18);
+    doc.text(`${result.duration}-Day Meal Plan${result.name ? ` — ${result.name}` : ""}`, 14, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.text(`Goal: ${result.goal}  |  BMI: ${result.bmi}`, 14, y);
+    y += 10;
+    result.days.forEach((d) => {
+      if (y > 260) { doc.addPage(); y = 15; }
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Day ${d.day}`, 14, y); y += 6;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const lines = [
+        `Breakfast: ${d.breakfast}`,
+        `Morning snack: ${d.morning_snack}`,
+        `Lunch: ${d.lunch}`,
+        `Evening snack: ${d.evening_snack}`,
+        `Dinner: ${d.dinner}`,
+        `Calories: ${d.calories} | P ${d.protein_g}g / C ${d.carbs_g}g / F ${d.fats_g}g | Water: ${d.water_liters}L`,
+        `Exercise: ${d.exercise}`,
+        `Tip: ${d.health_tip}`,
+      ];
+      lines.forEach(l => {
+        const wrapped = doc.splitTextToSize(l, 180);
+        wrapped.forEach((wl: string) => {
+          if (y > 285) { doc.addPage(); y = 15; }
+          doc.text(wl, 14, y); y += 5;
+        });
+      });
+      y += 3;
+    });
+    doc.save(`nutriplan-${result.duration}day.pdf`);
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Nav />
+      <header className="border-b bg-background/70 backdrop-blur sticky top-0 z-40">
+        <div className="mx-auto max-w-5xl px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-lg">
+            <div className="size-8 rounded-lg bg-primary text-primary-foreground grid place-items-center">
+              <Leaf className="size-4" />
+            </div>
+            NutriPlan <span className="text-accent">AI</span>
+          </div>
+          <div className="text-xs text-muted-foreground hidden sm:block">No sign-up required</div>
+        </div>
+      </header>
+
       <main className="flex-1">
-        {/* Hero */}
         <section className="hero-gradient">
-          <div className="mx-auto max-w-6xl px-4 py-20 md:py-28 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground mb-6">
+          <div className="mx-auto max-w-3xl px-4 py-12 md:py-16 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
               <Sparkles className="size-3 text-accent" /> AI-powered personal nutritionist
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight max-w-3xl mx-auto">
-              Personalized diet plans, <span className="text-primary">crafted by AI</span> for <span className="text-accent">your body & goals</span>.
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
+              Get your personalized <span className="text-primary">AI diet plan</span> in seconds
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Get 7, 14, or 30-day meal plans built around your BMI, medical conditions, allergies, and food preferences — with shopping lists, water tracking, and progress charts.
+            <p className="mt-4 text-muted-foreground">
+              Fill in the form below — we'll build a plan around your body, goals, and health conditions.
             </p>
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <Link to="/auth"><Button size="lg" className="text-base">Get started free</Button></Link>
-              <a href="#how"><Button size="lg" variant="outline">See how it works</Button></a>
-            </div>
           </div>
         </section>
 
-        {/* Features */}
-        <section id="features" className="mx-auto max-w-6xl px-4 py-20">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold">Everything you need to eat smart</h2>
-            <p className="mt-3 text-muted-foreground">Built for real life — with real food, real budgets, and real health needs.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { icon: Brain, title: "AI meal planning", desc: "Gemini-powered plans that adapt to diabetes, hypertension, PCOS, and more." },
-              { icon: Salad, title: "Local, affordable foods", desc: "Recommends South-Asian staples that fit your budget and taste." },
-              { icon: ShoppingBasket, title: "Auto shopping lists", desc: "Grouped by category — grab it all in one trip." },
-              { icon: Droplet, title: "Water tracker", desc: "Hit your hydration goal with a visual daily tracker." },
-              { icon: LineChart, title: "Weight trends", desc: "Log weight over time and see your progress charted." },
-              { icon: Activity, title: "Exercise + tips", desc: "Every day includes a suggestion and a health tip." },
-            ].map((f) => (
-              <Card key={f.title} className="border-border/60 hover:border-primary/40 transition">
-                <CardContent className="pt-6">
-                  <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center mb-4">
-                    <f.icon className="size-5" />
+        <section className="mx-auto max-w-3xl px-4 pb-16 -mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your details</CardTitle>
+              <CardDescription>All fields help us personalize your plan.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Field label="Name (optional)">
+                    <Input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Your name" />
+                  </Field>
+                  <Field label="Age *">
+                    <Input type="number" min={5} max={120} required value={f.age}
+                      onChange={e => setF({ ...f, age: e.target.value })} />
+                  </Field>
+                  <Field label="Gender">
+                    <Select value={f.gender} onValueChange={v => setF({ ...f, gender: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{GENDERS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Plan duration">
+                    <Select value={f.duration} onValueChange={v => setF({ ...f, duration: v as "7" | "14" | "30" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">7 days</SelectItem>
+                        <SelectItem value="14">14 days</SelectItem>
+                        <SelectItem value="30">30 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Height (cm) *">
+                    <Input type="number" min={50} max={260} required value={f.height_cm}
+                      onChange={e => setF({ ...f, height_cm: e.target.value })} />
+                  </Field>
+                  <Field label="Weight (kg) *">
+                    <Input type="number" step="0.1" min={20} max={400} required value={f.weight_kg}
+                      onChange={e => setF({ ...f, weight_kg: e.target.value })} />
+                  </Field>
+                  <Field label="Activity level">
+                    <Select value={f.activity_level} onValueChange={v => setF({ ...f, activity_level: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{ACTIVITY_LEVELS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Goal">
+                    <Select value={f.goal} onValueChange={v => setF({ ...f, goal: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{GOALS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Food preference">
+                    <Select value={f.food_preference} onValueChange={v => setF({ ...f, food_preference: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{FOOD_PREFERENCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Medical condition">
+                    <Select value={f.medical_conditions} onValueChange={v => setF({ ...f, medical_conditions: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{MEDICAL_CONDITIONS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <div className="md:col-span-2">
+                    <Field label="Allergies (comma-separated)">
+                      <Textarea rows={2} value={f.allergies}
+                        onChange={e => setF({ ...f, allergies: e.target.value })}
+                        placeholder="e.g. peanuts, shellfish" />
+                    </Field>
                   </div>
-                  <h3 className="font-semibold">{f.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{f.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section id="how" className="bg-secondary/40 border-y">
-          <div className="mx-auto max-w-6xl px-4 py-20">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">How it works</h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { n: "01", title: "Tell us about you", desc: "Age, weight, height, activity, goal, allergies, and health conditions." },
-                { n: "02", title: "Generate your plan", desc: "Pick 7, 14, or 30 days. AI builds a personalized plan in seconds." },
-                { n: "03", title: "Track & adjust", desc: "Log water and weight, download PDF, save shopping lists." },
-              ].map((s) => (
-                <div key={s.n} className="rounded-xl bg-card p-6 border">
-                  <div className="text-accent text-sm font-bold">{s.n}</div>
-                  <h3 className="mt-2 text-lg font-semibold">{s.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
                 </div>
-              ))}
+
+                {bmi > 0 && (
+                  <div className="rounded-lg border bg-secondary/40 p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Your BMI</div>
+                      <div className="text-3xl font-extrabold text-primary">{bmi}</div>
+                    </div>
+                    <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
+                  </div>
+                )}
+
+                <Button type="submit" size="lg" disabled={loading} className="w-full">
+                  {loading
+                    ? <><Loader2 className="size-4 mr-2 animate-spin" />Generating your plan…</>
+                    : <><Sparkles className="size-4 mr-2" />Generate my plan</>}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {result && (
+            <div id="result" className="mt-10 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    Your {result.duration}-day plan{result.name ? `, ${result.name}` : ""}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Goal: {result.goal} · BMI: {result.bmi}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => { setResult(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                    <RotateCcw className="size-4 mr-2" />New plan
+                  </Button>
+                  <Button onClick={downloadPDF}>
+                    <Download className="size-4 mr-2" />Download PDF
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {result.days.map(d => (
+                  <Card key={d.day}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span>Day {d.day}</span>
+                        <span className="text-sm font-normal text-muted-foreground">
+                          {d.calories} kcal · {d.water_liters}L water
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm space-y-2">
+                      <Meal label="Breakfast" text={d.breakfast} />
+                      <Meal label="Morning snack" text={d.morning_snack} />
+                      <Meal label="Lunch" text={d.lunch} />
+                      <Meal label="Evening snack" text={d.evening_snack} />
+                      <Meal label="Dinner" text={d.dinner} />
+                      <div className="grid grid-cols-3 gap-2 pt-2 text-xs text-muted-foreground">
+                        <div>Protein: <span className="text-foreground font-semibold">{d.protein_g}g</span></div>
+                        <div>Carbs: <span className="text-foreground font-semibold">{d.carbs_g}g</span></div>
+                        <div>Fats: <span className="text-foreground font-semibold">{d.fats_g}g</span></div>
+                      </div>
+                      <div className="pt-2 border-t text-xs">
+                        <div><span className="font-semibold text-accent">Exercise:</span> {d.exercise}</div>
+                        <div className="mt-1"><span className="font-semibold text-primary">Tip:</span> {d.health_tip}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section id="faq" className="mx-auto max-w-3xl px-4 py-20">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-10">Frequently asked</h2>
-          <Accordion type="single" collapsible className="w-full">
-            {[
-              { q: "Is this medical advice?", a: "No. NutriPlan AI is for educational and informational purposes only. Always consult a doctor for medical concerns." },
-              { q: "Which health conditions are supported?", a: "The AI considers diabetes, hypertension, high cholesterol, PCOS, thyroid, and kidney disease when generating plans." },
-              { q: "Do you support vegetarian and vegan diets?", a: "Yes — set your food preference in the profile and the AI will respect it strictly." },
-              { q: "Can I download my plan?", a: "Yes. Every plan can be exported as a PDF from the plan page." },
-              { q: "Is my data private?", a: "Yes. Your data is stored securely and only you can access your plans and logs." },
-            ].map((f, i) => (
-              <AccordionItem key={i} value={`i${i}`}>
-                <AccordionTrigger>{f.q}</AccordionTrigger>
-                <AccordionContent>{f.a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
-
-        {/* Contact */}
-        <section id="contact" className="bg-primary text-primary-foreground">
-          <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-            <Mail className="size-8 mx-auto mb-4 opacity-90" />
-            <h2 className="text-3xl md:text-4xl font-bold">Ready to eat smarter?</h2>
-            <p className="mt-3 opacity-90">Create your free account and generate your first AI plan in under a minute.</p>
-            <Link to="/auth" className="inline-block mt-6">
-              <Button size="lg" variant="secondary" className="text-primary">Get started free</Button>
-            </Link>
-            <p className="mt-8 text-sm opacity-80">Questions? Email <a className="underline" href="mailto:hello@nutriplan.ai">hello@nutriplan.ai</a></p>
-          </div>
+          )}
         </section>
       </main>
 
       <footer className="border-t">
-        <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2 font-semibold">
-            <Leaf className="size-4 text-primary" /> NutriPlan AI
-          </div>
-          <div>© {new Date().getFullYear()} NutriPlan AI. For educational purposes only.</div>
+        <div className="mx-auto max-w-5xl px-4 py-6 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} NutriPlan AI · Educational purposes only. Not medical advice.
         </div>
       </footer>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
+}
+
+function Meal({ label, text }: { label: string; text: string }) {
+  return (
+    <div className="flex gap-2">
+      <span className="font-semibold text-primary min-w-32">{label}:</span>
+      <span className="text-foreground/90">{text}</span>
     </div>
   );
 }
