@@ -318,10 +318,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
 }
 
-function Meal({ label, text }: { label: string; text: string }) {
+function Meal({ label, time, text }: { label: string; time?: string; text: string }) {
   return (
     <div className="flex gap-2">
-      <span className="font-semibold text-primary min-w-32">{label}:</span>
+      <span className="font-semibold text-primary-foreground min-w-40">
+        {label}{time ? ` · ${time}` : ""}:
+      </span>
       <span className="text-foreground/90">{text}</span>
     </div>
   );
