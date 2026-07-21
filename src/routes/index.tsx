@@ -33,6 +33,7 @@ type FormState = {
   height_cm: string; weight_kg: string;
   activity_level: string; goal: string;
   food_preference: string; allergies: string; medical_conditions: string;
+  country: string; budget: string;
   duration: "7" | "14" | "30";
 };
 
@@ -40,10 +41,11 @@ const empty: FormState = {
   name: "", age: "", gender: "Male", height_cm: "", weight_kg: "",
   activity_level: "Moderate", goal: "Maintain Weight",
   food_preference: "Non-Vegetarian", allergies: "", medical_conditions: "None",
+  country: "Pakistan", budget: "Budget-friendly",
   duration: "7",
 };
 
-type Result = { bmi: number; days: DayPlan[]; goal: string; duration: number; name: string };
+type Result = { bmi: number; ideal: { min: number; max: number } | null; season: string; country: string; days: DayPlan[]; goal: string; duration: number; name: string };
 
 function Landing() {
   const gen = useServerFn(generatePublicDietPlan);
