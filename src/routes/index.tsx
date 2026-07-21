@@ -14,9 +14,17 @@ import { Leaf, Sparkles, Loader2, Download, RotateCcw } from "lucide-react";
 import jsPDF from "jspdf";
 import {
   ACTIVITY_LEVELS, GOALS, FOOD_PREFERENCES, MEDICAL_CONDITIONS, GENDERS,
-  calcBMI, bmiCategory, type DayPlan,
+  calcBMI, bmiCategory, idealWeightRange, type DayPlan,
 } from "@/lib/nutrition";
 import { generatePublicDietPlan } from "@/lib/public-diet.functions";
+
+const BUDGETS = ["Budget-friendly", "Moderate", "Premium"] as const;
+const COUNTRIES = [
+  "Pakistan", "India", "Bangladesh", "Sri Lanka", "United States", "United Kingdom",
+  "Canada", "Australia", "United Arab Emirates", "Saudi Arabia", "Turkey",
+  "Indonesia", "Malaysia", "Philippines", "Nigeria", "Egypt", "South Africa",
+  "Germany", "France", "Italy", "Spain", "Brazil", "Mexico", "China", "Japan", "Other",
+];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,6 +41,7 @@ type FormState = {
   height_cm: string; weight_kg: string;
   activity_level: string; goal: string;
   food_preference: string; allergies: string; medical_conditions: string;
+  country: string; budget: string;
   duration: "7" | "14" | "30";
 };
 
@@ -40,10 +49,11 @@ const empty: FormState = {
   name: "", age: "", gender: "Male", height_cm: "", weight_kg: "",
   activity_level: "Moderate", goal: "Maintain Weight",
   food_preference: "Non-Vegetarian", allergies: "", medical_conditions: "None",
+  country: "Pakistan", budget: "Budget-friendly",
   duration: "7",
 };
 
-type Result = { bmi: number; days: DayPlan[]; goal: string; duration: number; name: string };
+type Result = { bmi: number; ideal: { min: number; max: number } | null; season: string; country: string; days: DayPlan[]; goal: string; duration: number; name: string };
 
 function Landing() {
   const gen = useServerFn(generatePublicDietPlan);
@@ -68,6 +78,7 @@ function Landing() {
         activity_level: f.activity_level, goal: f.goal,
         food_preference: f.food_preference,
         allergies: f.allergies, medical_conditions: f.medical_conditions,
+        country: f.country, budget: f.budget,
         duration: Number(f.duration) as 7 | 14 | 30,
       }});
       setResult(res);
@@ -98,13 +109,12 @@ function Landing() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       const lines = [
-        `Breakfast: ${d.breakfast}`,
-        `Morning snack: ${d.morning_snack}`,
-        `Lunch: ${d.lunch}`,
-        `Evening snack: ${d.evening_snack}`,
-        `Dinner: ${d.dinner}`,
+        `Breakfast (${d.breakfast_time ?? ""}): ${d.breakfast}`,
+        `Lunch (${d.lunch_time ?? ""}): ${d.lunch}`,
+        `Evening snack (${d.evening_snack_time ?? ""}): ${d.evening_snack}`,
+        `Dinner (${d.dinner_time ?? ""}): ${d.dinner}`,
         `Calories: ${d.calories} | P ${d.protein_g}g / C ${d.carbs_g}g / F ${d.fats_g}g | Water: ${d.water_liters}L`,
-        `Exercise: ${d.exercise}`,
+        `Exercise (${d.exercise_time ?? ""}): ${d.exercise}`,
         `Tip: ${d.health_tip}`,
       ];
       lines.forEach(l => {
@@ -212,6 +222,20 @@ function Landing() {
                       <SelectContent>{MEDICAL_CONDITIONS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </Field>
+                  <Field label="Country *">
+                    <Select value={f.country} onValueChange={v => setF({ ...f, country: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Budget">
+                    <Select value={f.budget} onValueChange={v => setF({ ...f, budget: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{BUDGETS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
                   <div className="md:col-span-2">
                     <Field label="Allergies (comma-separated)">
                       <Textarea rows={2} value={f.allergies}
@@ -221,15 +245,30 @@ function Landing() {
                   </div>
                 </div>
 
-                {bmi > 0 && (
-                  <div className="rounded-lg border bg-secondary/40 p-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Your BMI</div>
-                      <div className="text-3xl font-extrabold text-primary">{bmi}</div>
+                {bmi > 0 && (() => {
+                  const ideal = idealWeightRange(h);
+                  const off = ideal ? (w < ideal.min ? +(ideal.min - w).toFixed(1) : w > ideal.max ? +(w - ideal.max).toFixed(1) : 0) : 0;
+                  return (
+                    <div className="rounded-lg border bg-secondary/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Your BMI</div>
+                          <div className="text-3xl font-extrabold text-primary-foreground">{bmi}</div>
+                        </div>
+                        <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
+                      </div>
+                      {ideal && (
+                        <div className="text-xs text-muted-foreground border-t pt-2">
+                          Ideal weight range for your height:{" "}
+                          <span className="font-semibold text-foreground">{ideal.min}–{ideal.max} kg</span>
+                          {off > 0 && (
+                            <> · You're about <span className="font-semibold text-accent-foreground">{off} kg {w < ideal.min ? "below" : "above"}</span> the healthy range.</>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <Button type="submit" size="lg" disabled={loading} className="w-full">
                   {loading
@@ -247,7 +286,10 @@ function Landing() {
                   <h2 className="text-2xl font-bold">
                     Your {result.duration}-day plan{result.name ? `, ${result.name}` : ""}
                   </h2>
-                  <p className="text-sm text-muted-foreground">Goal: {result.goal} · BMI: {result.bmi}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Goal: {result.goal} · BMI: {result.bmi} · {result.country} · {result.season}
+                    {result.ideal && <> · Ideal: {result.ideal.min}–{result.ideal.max} kg</>}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => { setResult(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
@@ -271,19 +313,20 @@ function Landing() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm space-y-2">
-                      <Meal label="Breakfast" text={d.breakfast} />
-                      <Meal label="Morning snack" text={d.morning_snack} />
-                      <Meal label="Lunch" text={d.lunch} />
-                      <Meal label="Evening snack" text={d.evening_snack} />
-                      <Meal label="Dinner" text={d.dinner} />
+                      <Meal label="Breakfast" time={d.breakfast_time} text={d.breakfast} />
+                      <Meal label="Lunch" time={d.lunch_time} text={d.lunch} />
+                      <Meal label="Evening snack" time={d.evening_snack_time} text={d.evening_snack} />
+                      <Meal label="Dinner" time={d.dinner_time} text={d.dinner} />
                       <div className="grid grid-cols-3 gap-2 pt-2 text-xs text-muted-foreground">
                         <div>Protein: <span className="text-foreground font-semibold">{d.protein_g}g</span></div>
                         <div>Carbs: <span className="text-foreground font-semibold">{d.carbs_g}g</span></div>
                         <div>Fats: <span className="text-foreground font-semibold">{d.fats_g}g</span></div>
                       </div>
-                      <div className="pt-2 border-t text-xs">
-                        <div><span className="font-semibold text-accent">Exercise:</span> {d.exercise}</div>
-                        <div className="mt-1"><span className="font-semibold text-primary">Tip:</span> {d.health_tip}</div>
+                      <div className="pt-2 border-t text-xs space-y-1">
+                        <div>
+                          <span className="font-semibold text-accent-foreground">Exercise{d.exercise_time ? ` · ${d.exercise_time}` : ""}:</span> {d.exercise}
+                        </div>
+                        <div><span className="font-semibold text-primary-foreground">Tip:</span> {d.health_tip}</div>
                       </div>
                     </CardContent>
                   </Card>
@@ -307,10 +350,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
 }
 
-function Meal({ label, text }: { label: string; text: string }) {
+function Meal({ label, time, text }: { label: string; time?: string; text: string }) {
   return (
     <div className="flex gap-2">
-      <span className="font-semibold text-primary min-w-32">{label}:</span>
+      <span className="font-semibold text-primary-foreground min-w-40">
+        {label}{time ? ` · ${time}` : ""}:
+      </span>
       <span className="text-foreground/90">{text}</span>
     </div>
   );
