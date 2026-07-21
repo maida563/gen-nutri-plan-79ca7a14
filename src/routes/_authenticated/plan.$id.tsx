@@ -98,14 +98,13 @@ function PlanPage() {
               <CardDescription>{d.calories} kcal · P {d.protein_g}g · C {d.carbs_g}g · F {d.fats_g}g · Water {d.water_liters}L</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <Row label="Breakfast" value={d.breakfast} />
-              <Row label="Morning snack" value={d.morning_snack} />
-              <Row label="Lunch" value={d.lunch} />
-              <Row label="Evening snack" value={d.evening_snack} />
-              <Row label="Dinner" value={d.dinner} />
+              <Row label={`Breakfast${d.breakfast_time ? ` · ${d.breakfast_time}` : ""}`} value={d.breakfast} />
+              <Row label={`Lunch${d.lunch_time ? ` · ${d.lunch_time}` : ""}`} value={d.lunch} />
+              <Row label={`Evening snack${d.evening_snack_time ? ` · ${d.evening_snack_time}` : ""}`} value={d.evening_snack} />
+              <Row label={`Dinner${d.dinner_time ? ` · ${d.dinner_time}` : ""}`} value={d.dinner} />
               <div className="pt-2 border-t space-y-1 text-xs">
-                <div><span className="font-semibold text-accent">Exercise:</span> {d.exercise}</div>
-                <div><span className="font-semibold text-primary">Tip:</span> {d.health_tip}</div>
+                <div><span className="font-semibold text-accent-foreground">Exercise{d.exercise_time ? ` · ${d.exercise_time}` : ""}:</span> {d.exercise}</div>
+                <div><span className="font-semibold text-primary-foreground">Tip:</span> {d.health_tip}</div>
               </div>
             </CardContent>
           </Card>
