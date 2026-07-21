@@ -109,13 +109,12 @@ function Landing() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       const lines = [
-        `Breakfast: ${d.breakfast}`,
-        `Morning snack: ${d.morning_snack}`,
-        `Lunch: ${d.lunch}`,
-        `Evening snack: ${d.evening_snack}`,
-        `Dinner: ${d.dinner}`,
+        `Breakfast (${d.breakfast_time ?? ""}): ${d.breakfast}`,
+        `Lunch (${d.lunch_time ?? ""}): ${d.lunch}`,
+        `Evening snack (${d.evening_snack_time ?? ""}): ${d.evening_snack}`,
+        `Dinner (${d.dinner_time ?? ""}): ${d.dinner}`,
         `Calories: ${d.calories} | P ${d.protein_g}g / C ${d.carbs_g}g / F ${d.fats_g}g | Water: ${d.water_liters}L`,
-        `Exercise: ${d.exercise}`,
+        `Exercise (${d.exercise_time ?? ""}): ${d.exercise}`,
         `Tip: ${d.health_tip}`,
       ];
       lines.forEach(l => {
