@@ -222,6 +222,20 @@ function Landing() {
                       <SelectContent>{MEDICAL_CONDITIONS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </Field>
+                  <Field label="Country *">
+                    <Select value={f.country} onValueChange={v => setF({ ...f, country: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Budget">
+                    <Select value={f.budget} onValueChange={v => setF({ ...f, budget: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{BUDGETS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
                   <div className="md:col-span-2">
                     <Field label="Allergies (comma-separated)">
                       <Textarea rows={2} value={f.allergies}
@@ -231,15 +245,30 @@ function Landing() {
                   </div>
                 </div>
 
-                {bmi > 0 && (
-                  <div className="rounded-lg border bg-secondary/40 p-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Your BMI</div>
-                      <div className="text-3xl font-extrabold text-primary">{bmi}</div>
+                {bmi > 0 && (() => {
+                  const ideal = idealWeightRange(h);
+                  const off = ideal ? (w < ideal.min ? +(ideal.min - w).toFixed(1) : w > ideal.max ? +(w - ideal.max).toFixed(1) : 0) : 0;
+                  return (
+                    <div className="rounded-lg border bg-secondary/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Your BMI</div>
+                          <div className="text-3xl font-extrabold text-primary-foreground">{bmi}</div>
+                        </div>
+                        <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
+                      </div>
+                      {ideal && (
+                        <div className="text-xs text-muted-foreground border-t pt-2">
+                          Ideal weight range for your height:{" "}
+                          <span className="font-semibold text-foreground">{ideal.min}–{ideal.max} kg</span>
+                          {off > 0 && (
+                            <> · You're about <span className="font-semibold text-accent-foreground">{off} kg {w < ideal.min ? "below" : "above"}</span> the healthy range.</>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <Button type="submit" size="lg" disabled={loading} className="w-full">
                   {loading
