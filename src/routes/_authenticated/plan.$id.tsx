@@ -42,14 +42,13 @@ function PlanPage() {
       doc.text(`Day ${d.day}`, 14, y); y += 6;
       doc.setFont("helvetica", "normal"); doc.setFontSize(10);
       const lines = [
-        `Breakfast: ${d.breakfast}`,
-        `Morning Snack: ${d.morning_snack}`,
-        `Lunch: ${d.lunch}`,
-        `Evening Snack: ${d.evening_snack}`,
-        `Dinner: ${d.dinner}`,
+        `Breakfast (${d.breakfast_time ?? ""}): ${d.breakfast}`,
+        `Lunch (${d.lunch_time ?? ""}): ${d.lunch}`,
+        `Evening Snack (${d.evening_snack_time ?? ""}): ${d.evening_snack}`,
+        `Dinner (${d.dinner_time ?? ""}): ${d.dinner}`,
         `Nutrition: ${d.calories} kcal | P: ${d.protein_g}g | C: ${d.carbs_g}g | F: ${d.fats_g}g`,
         `Water: ${d.water_liters} L`,
-        `Exercise: ${d.exercise}`,
+        `Exercise (${d.exercise_time ?? ""}): ${d.exercise}`,
         `Tip: ${d.health_tip}`,
       ];
       lines.forEach(l => {
