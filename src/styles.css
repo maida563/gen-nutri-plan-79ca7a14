@@ -103,7 +103,8 @@
 
 @utility hero-gradient {
   background:
-    radial-gradient(ellipse 80% 60% at 20% 20%, oklch(0.62 0.16 145 / 0.18), transparent 60%),
-    radial-gradient(ellipse 70% 60% at 90% 30%, oklch(0.72 0.17 55 / 0.18), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 20% 20%, oklch(0.82 0.11 160 / 0.35), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 90% 30%, oklch(0.86 0.09 55 / 0.35), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 100%, oklch(0.88 0.09 320 / 0.25), transparent 60%),
     linear-gradient(180deg, var(--color-background), var(--color-background));
 }
