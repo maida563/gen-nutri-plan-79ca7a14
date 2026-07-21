@@ -78,6 +78,7 @@ function Landing() {
         activity_level: f.activity_level, goal: f.goal,
         food_preference: f.food_preference,
         allergies: f.allergies, medical_conditions: f.medical_conditions,
+        country: f.country, budget: f.budget,
         duration: Number(f.duration) as 7 | 14 | 30,
       }});
       setResult(res);
