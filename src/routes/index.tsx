@@ -286,7 +286,10 @@ function Landing() {
                   <h2 className="text-2xl font-bold">
                     Your {result.duration}-day plan{result.name ? `, ${result.name}` : ""}
                   </h2>
-                  <p className="text-sm text-muted-foreground">Goal: {result.goal} · BMI: {result.bmi}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Goal: {result.goal} · BMI: {result.bmi} · {result.country} · {result.season}
+                    {result.ideal && <> · Ideal: {result.ideal.min}–{result.ideal.max} kg</>}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => { setResult(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
