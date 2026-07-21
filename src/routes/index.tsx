@@ -14,9 +14,17 @@ import { Leaf, Sparkles, Loader2, Download, RotateCcw } from "lucide-react";
 import jsPDF from "jspdf";
 import {
   ACTIVITY_LEVELS, GOALS, FOOD_PREFERENCES, MEDICAL_CONDITIONS, GENDERS,
-  calcBMI, bmiCategory, type DayPlan,
+  calcBMI, bmiCategory, idealWeightRange, type DayPlan,
 } from "@/lib/nutrition";
 import { generatePublicDietPlan } from "@/lib/public-diet.functions";
+
+const BUDGETS = ["Budget-friendly", "Moderate", "Premium"] as const;
+const COUNTRIES = [
+  "Pakistan", "India", "Bangladesh", "Sri Lanka", "United States", "United Kingdom",
+  "Canada", "Australia", "United Arab Emirates", "Saudi Arabia", "Turkey",
+  "Indonesia", "Malaysia", "Philippines", "Nigeria", "Egypt", "South Africa",
+  "Germany", "France", "Italy", "Spain", "Brazil", "Mexico", "China", "Japan", "Other",
+];
 
 export const Route = createFileRoute("/")({
   head: () => ({
