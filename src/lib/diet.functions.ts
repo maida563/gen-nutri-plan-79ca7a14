@@ -50,23 +50,23 @@ User profile:
   "days": [
     {
       "day": 1,
-      "breakfast": "string",
-      "morning_snack": "string",
-      "lunch": "string",
-      "evening_snack": "string",
-      "dinner": "string",
-      "calories": number,
-      "protein_g": number,
-      "carbs_g": number,
-      "fats_g": number,
+      "breakfast": "string", "breakfast_time": "8:00 AM",
+      "lunch": "string", "lunch_time": "1:00 PM",
+      "evening_snack": "string", "evening_snack_time": "5:00 PM",
+      "dinner": "string", "dinner_time": "8:00 PM",
+      "calories": number, "protein_g": number, "carbs_g": number, "fats_g": number,
       "water_liters": number,
-      "exercise": "string",
+      "exercise": "string", "exercise_time": "7:00 AM",
       "health_tip": "string"
     }
   ]
 }`;
 
-    const prompt = `${userCtx}\nGenerate a ${data.duration}-day meal plan.\nReturn JSON exactly matching this schema:\n${schema}\nThe "days" array MUST contain exactly ${data.duration} objects, day 1 through ${data.duration}.`;
+    const prompt = `${userCtx}
+Generate a ${data.duration}-day meal plan with FOUR meals per day only (Breakfast, Lunch, Evening Snack, Dinner) — NO morning snack.
+Return JSON exactly matching this schema:
+${schema}
+The "days" array MUST contain exactly ${data.duration} objects, day 1 through ${data.duration}. Every meal and the exercise MUST include a specific clock time (e.g. "8:00 AM").`;
 
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("AI service not configured.");
