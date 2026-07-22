@@ -234,12 +234,40 @@ function Landing() {
                       <SelectContent>{FOOD_PREFERENCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Medical condition">
-                    <Select value={f.medical_conditions} onValueChange={v => setF({ ...f, medical_conditions: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{MEDICAL_CONDITIONS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </Field>
+                  <div className="md:col-span-2">
+                    <Field label="Medical conditions (select all that apply)">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-md border p-3 bg-secondary/40">
+                        {MEDICAL_CONDITIONS.map(m => {
+                          const active = f.medical_conditions.includes(m);
+                          return (
+                            <label key={m} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="size-4 accent-[color:var(--color-primary)]"
+                                checked={active}
+                                onChange={() => toggleCondition(m)}
+                              />
+                              <span>{m}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </Field>
+                    {f.medical_conditions.includes("Other") && (
+                      <div className="mt-3">
+                        <Field label="Describe your condition(s) *">
+                          <Textarea
+                            rows={2}
+                            required
+                            value={f.custom_condition}
+                            onChange={e => setF({ ...f, custom_condition: e.target.value })}
+                            placeholder="Briefly describe your condition and any foods to avoid"
+                          />
+                        </Field>
+                      </div>
+                    )}
+                  </div>
+
                   <Field label="Country *">
                     <Select value={f.country} onValueChange={v => setF({ ...f, country: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
