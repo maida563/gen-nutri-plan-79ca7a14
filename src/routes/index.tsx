@@ -397,13 +397,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
 }
 
-function Meal({ label, time, text }: { label: string; time?: string; text: string }) {
+function Meal({ label, time, text, reason }: { label: string; time?: string; text: string; reason?: string }) {
   return (
-    <div className="flex gap-2">
-      <span className="font-semibold text-primary-foreground min-w-40">
-        {label}{time ? ` · ${time}` : ""}:
-      </span>
-      <span className="text-foreground/90">{text}</span>
+    <div className="space-y-1">
+      <div className="flex flex-wrap gap-2">
+        <span className="font-semibold text-primary min-w-40">
+          {label}{time ? ` · ${time}` : ""}:
+        </span>
+        <span className="text-foreground/90 flex-1">{text}</span>
+      </div>
+      {reason && (
+        <div className="text-xs text-muted-foreground pl-1 border-l-2 border-accent/60 ml-1 pl-2 italic">
+          Why: {reason}
+        </div>
+      )}
     </div>
   );
 }
+
