@@ -40,7 +40,9 @@ type FormState = {
   name: string; age: string; gender: string;
   height_cm: string; weight_kg: string;
   activity_level: string; goal: string;
-  food_preference: string; allergies: string; medical_conditions: string;
+  food_preference: string; allergies: string;
+  medical_conditions: string[];
+  custom_condition: string;
   country: string; budget: string;
   duration: "7" | "14" | "30";
 };
@@ -48,7 +50,8 @@ type FormState = {
 const empty: FormState = {
   name: "", age: "", gender: "Male", height_cm: "", weight_kg: "",
   activity_level: "Moderate", goal: "Maintain Weight",
-  food_preference: "Non-Vegetarian", allergies: "", medical_conditions: "None",
+  food_preference: "Non-Vegetarian", allergies: "",
+  medical_conditions: [], custom_condition: "",
   country: "Pakistan", budget: "Budget-friendly",
   duration: "7",
 };
@@ -66,9 +69,21 @@ function Landing() {
   const bmi = calcBMI(h, w);
   const cat = bmiCategory(bmi);
 
+  function toggleCondition(c: string) {
+    setF(prev => ({
+      ...prev,
+      medical_conditions: prev.medical_conditions.includes(c)
+        ? prev.medical_conditions.filter(x => x !== c)
+        : [...prev.medical_conditions, c],
+    }));
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!f.age || !h || !w) return toast.error("Please fill age, height and weight.");
+    if (f.medical_conditions.includes("Other") && !f.custom_condition.trim()) {
+      return toast.error("Please describe your condition in the text box.");
+    }
     setLoading(true);
     setResult(null);
     try {
@@ -77,7 +92,9 @@ function Landing() {
         height_cm: h, weight_kg: w,
         activity_level: f.activity_level, goal: f.goal,
         food_preference: f.food_preference,
-        allergies: f.allergies, medical_conditions: f.medical_conditions,
+        allergies: f.allergies,
+        medical_conditions: f.medical_conditions,
+        custom_condition: f.custom_condition,
         country: f.country, budget: f.budget,
         duration: Number(f.duration) as 7 | 14 | 30,
       }});
@@ -90,6 +107,7 @@ function Landing() {
       setLoading(false);
     }
   }
+
 
   function downloadPDF() {
     if (!result) return;
