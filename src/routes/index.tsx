@@ -40,7 +40,9 @@ type FormState = {
   name: string; age: string; gender: string;
   height_cm: string; weight_kg: string;
   activity_level: string; goal: string;
-  food_preference: string; allergies: string; medical_conditions: string;
+  food_preference: string; allergies: string;
+  medical_conditions: string[];
+  custom_condition: string;
   country: string; budget: string;
   duration: "7" | "14" | "30";
 };
@@ -48,7 +50,8 @@ type FormState = {
 const empty: FormState = {
   name: "", age: "", gender: "Male", height_cm: "", weight_kg: "",
   activity_level: "Moderate", goal: "Maintain Weight",
-  food_preference: "Non-Vegetarian", allergies: "", medical_conditions: "None",
+  food_preference: "Non-Vegetarian", allergies: "",
+  medical_conditions: [], custom_condition: "",
   country: "Pakistan", budget: "Budget-friendly",
   duration: "7",
 };
@@ -66,9 +69,21 @@ function Landing() {
   const bmi = calcBMI(h, w);
   const cat = bmiCategory(bmi);
 
+  function toggleCondition(c: string) {
+    setF(prev => ({
+      ...prev,
+      medical_conditions: prev.medical_conditions.includes(c)
+        ? prev.medical_conditions.filter(x => x !== c)
+        : [...prev.medical_conditions, c],
+    }));
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!f.age || !h || !w) return toast.error("Please fill age, height and weight.");
+    if (f.medical_conditions.includes("Other") && !f.custom_condition.trim()) {
+      return toast.error("Please describe your condition in the text box.");
+    }
     setLoading(true);
     setResult(null);
     try {
@@ -77,7 +92,9 @@ function Landing() {
         height_cm: h, weight_kg: w,
         activity_level: f.activity_level, goal: f.goal,
         food_preference: f.food_preference,
-        allergies: f.allergies, medical_conditions: f.medical_conditions,
+        allergies: f.allergies,
+        medical_conditions: f.medical_conditions,
+        custom_condition: f.custom_condition,
         country: f.country, budget: f.budget,
         duration: Number(f.duration) as 7 | 14 | 30,
       }});
@@ -90,6 +107,7 @@ function Landing() {
       setLoading(false);
     }
   }
+
 
   function downloadPDF() {
     if (!result) return;
@@ -110,13 +128,18 @@ function Landing() {
       doc.setFontSize(10);
       const lines = [
         `Breakfast (${d.breakfast_time ?? ""}): ${d.breakfast}`,
+        ...(d.breakfast_reason ? [`  Why: ${d.breakfast_reason}`] : []),
         `Lunch (${d.lunch_time ?? ""}): ${d.lunch}`,
+        ...(d.lunch_reason ? [`  Why: ${d.lunch_reason}`] : []),
         `Evening snack (${d.evening_snack_time ?? ""}): ${d.evening_snack}`,
+        ...(d.evening_snack_reason ? [`  Why: ${d.evening_snack_reason}`] : []),
         `Dinner (${d.dinner_time ?? ""}): ${d.dinner}`,
+        ...(d.dinner_reason ? [`  Why: ${d.dinner_reason}`] : []),
         `Calories: ${d.calories} | P ${d.protein_g}g / C ${d.carbs_g}g / F ${d.fats_g}g | Water: ${d.water_liters}L`,
         `Exercise (${d.exercise_time ?? ""}): ${d.exercise}`,
         `Tip: ${d.health_tip}`,
       ];
+
       lines.forEach(l => {
         const wrapped = doc.splitTextToSize(l, 180);
         wrapped.forEach((wl: string) => {
@@ -216,12 +239,40 @@ function Landing() {
                       <SelectContent>{FOOD_PREFERENCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Medical condition">
-                    <Select value={f.medical_conditions} onValueChange={v => setF({ ...f, medical_conditions: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{MEDICAL_CONDITIONS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </Field>
+                  <div className="md:col-span-2">
+                    <Field label="Medical conditions (select all that apply)">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-md border p-3 bg-secondary/40">
+                        {MEDICAL_CONDITIONS.map(m => {
+                          const active = f.medical_conditions.includes(m);
+                          return (
+                            <label key={m} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="size-4 accent-[color:var(--color-primary)]"
+                                checked={active}
+                                onChange={() => toggleCondition(m)}
+                              />
+                              <span>{m}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </Field>
+                    {f.medical_conditions.includes("Other") && (
+                      <div className="mt-3">
+                        <Field label="Describe your condition(s) *">
+                          <Textarea
+                            rows={2}
+                            required
+                            value={f.custom_condition}
+                            onChange={e => setF({ ...f, custom_condition: e.target.value })}
+                            placeholder="Briefly describe your condition and any foods to avoid"
+                          />
+                        </Field>
+                      </div>
+                    )}
+                  </div>
+
                   <Field label="Country *">
                     <Select value={f.country} onValueChange={v => setF({ ...f, country: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -253,7 +304,7 @@ function Landing() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-xs text-muted-foreground">Your BMI</div>
-                          <div className="text-3xl font-extrabold text-primary-foreground">{bmi}</div>
+                          <div className="text-3xl font-extrabold text-primary">{bmi}</div>
                         </div>
                         <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
                       </div>
@@ -312,11 +363,11 @@ function Landing() {
                         </span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-sm space-y-2">
-                      <Meal label="Breakfast" time={d.breakfast_time} text={d.breakfast} />
-                      <Meal label="Lunch" time={d.lunch_time} text={d.lunch} />
-                      <Meal label="Evening snack" time={d.evening_snack_time} text={d.evening_snack} />
-                      <Meal label="Dinner" time={d.dinner_time} text={d.dinner} />
+                    <CardContent className="text-sm space-y-3">
+                      <Meal label="Breakfast" time={d.breakfast_time} text={d.breakfast} reason={d.breakfast_reason} />
+                      <Meal label="Lunch" time={d.lunch_time} text={d.lunch} reason={d.lunch_reason} />
+                      <Meal label="Evening snack" time={d.evening_snack_time} text={d.evening_snack} reason={d.evening_snack_reason} />
+                      <Meal label="Dinner" time={d.dinner_time} text={d.dinner} reason={d.dinner_reason} />
                       <div className="grid grid-cols-3 gap-2 pt-2 text-xs text-muted-foreground">
                         <div>Protein: <span className="text-foreground font-semibold">{d.protein_g}g</span></div>
                         <div>Carbs: <span className="text-foreground font-semibold">{d.carbs_g}g</span></div>
@@ -324,11 +375,12 @@ function Landing() {
                       </div>
                       <div className="pt-2 border-t text-xs space-y-1">
                         <div>
-                          <span className="font-semibold text-accent-foreground">Exercise{d.exercise_time ? ` · ${d.exercise_time}` : ""}:</span> {d.exercise}
+                          <span className="font-semibold text-accent">Exercise{d.exercise_time ? ` · ${d.exercise_time}` : ""}:</span> {d.exercise}
                         </div>
-                        <div><span className="font-semibold text-primary-foreground">Tip:</span> {d.health_tip}</div>
+                        <div><span className="font-semibold text-primary">Tip:</span> {d.health_tip}</div>
                       </div>
                     </CardContent>
+
                   </Card>
                 ))}
               </div>
@@ -350,13 +402,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
 }
 
-function Meal({ label, time, text }: { label: string; time?: string; text: string }) {
+function Meal({ label, time, text, reason }: { label: string; time?: string; text: string; reason?: string }) {
   return (
-    <div className="flex gap-2">
-      <span className="font-semibold text-primary-foreground min-w-40">
-        {label}{time ? ` · ${time}` : ""}:
-      </span>
-      <span className="text-foreground/90">{text}</span>
+    <div className="space-y-1">
+      <div className="flex flex-wrap gap-2">
+        <span className="font-semibold text-primary min-w-40">
+          {label}{time ? ` · ${time}` : ""}:
+        </span>
+        <span className="text-foreground/90 flex-1">{text}</span>
+      </div>
+      {reason && (
+        <div className="text-xs text-muted-foreground pl-1 border-l-2 border-accent/60 ml-1 pl-2 italic">
+          Why: {reason}
+        </div>
+      )}
     </div>
   );
 }
+

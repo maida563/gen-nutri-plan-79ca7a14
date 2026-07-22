@@ -34,7 +34,18 @@ export const ACTIVITY_LEVELS = ["Sedentary", "Light", "Moderate", "Active"] as c
 export const GOALS = ["Lose Weight", "Maintain Weight", "Gain Weight"] as const;
 export const FOOD_PREFERENCES = ["Vegetarian", "Non-Vegetarian", "Vegan"] as const;
 export const MEDICAL_CONDITIONS = [
-  "None", "Diabetes", "Hypertension", "High Cholesterol", "PCOS", "Thyroid", "Kidney Disease", "Other",
+  "Diabetes",
+  "Hypertension",
+  "High Cholesterol",
+  "PCOS",
+  "Kidney Disease",
+  "Heart Disease",
+  "Thyroid Disorders",
+  "Fatty Liver",
+  "Anemia",
+  "IBS",
+  "Celiac Disease",
+  "Other",
 ] as const;
 export const GENDERS = ["Male", "Female", "Other"] as const;
 
@@ -42,12 +53,16 @@ export type DayPlan = {
   day: number;
   breakfast: string;
   breakfast_time: string;
+  breakfast_reason?: string;
   lunch: string;
   lunch_time: string;
+  lunch_reason?: string;
   evening_snack: string;
   evening_snack_time: string;
+  evening_snack_reason?: string;
   dinner: string;
   dinner_time: string;
+  dinner_reason?: string;
   calories: number;
   protein_g: number;
   carbs_g: number;
