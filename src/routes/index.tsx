@@ -128,13 +128,18 @@ function Landing() {
       doc.setFontSize(10);
       const lines = [
         `Breakfast (${d.breakfast_time ?? ""}): ${d.breakfast}`,
+        ...(d.breakfast_reason ? [`  Why: ${d.breakfast_reason}`] : []),
         `Lunch (${d.lunch_time ?? ""}): ${d.lunch}`,
+        ...(d.lunch_reason ? [`  Why: ${d.lunch_reason}`] : []),
         `Evening snack (${d.evening_snack_time ?? ""}): ${d.evening_snack}`,
+        ...(d.evening_snack_reason ? [`  Why: ${d.evening_snack_reason}`] : []),
         `Dinner (${d.dinner_time ?? ""}): ${d.dinner}`,
+        ...(d.dinner_reason ? [`  Why: ${d.dinner_reason}`] : []),
         `Calories: ${d.calories} | P ${d.protein_g}g / C ${d.carbs_g}g / F ${d.fats_g}g | Water: ${d.water_liters}L`,
         `Exercise (${d.exercise_time ?? ""}): ${d.exercise}`,
         `Tip: ${d.health_tip}`,
       ];
+
       lines.forEach(l => {
         const wrapped = doc.splitTextToSize(l, 180);
         wrapped.forEach((wl: string) => {
