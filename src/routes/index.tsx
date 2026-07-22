@@ -358,11 +358,11 @@ function Landing() {
                         </span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-sm space-y-2">
-                      <Meal label="Breakfast" time={d.breakfast_time} text={d.breakfast} />
-                      <Meal label="Lunch" time={d.lunch_time} text={d.lunch} />
-                      <Meal label="Evening snack" time={d.evening_snack_time} text={d.evening_snack} />
-                      <Meal label="Dinner" time={d.dinner_time} text={d.dinner} />
+                    <CardContent className="text-sm space-y-3">
+                      <Meal label="Breakfast" time={d.breakfast_time} text={d.breakfast} reason={d.breakfast_reason} />
+                      <Meal label="Lunch" time={d.lunch_time} text={d.lunch} reason={d.lunch_reason} />
+                      <Meal label="Evening snack" time={d.evening_snack_time} text={d.evening_snack} reason={d.evening_snack_reason} />
+                      <Meal label="Dinner" time={d.dinner_time} text={d.dinner} reason={d.dinner_reason} />
                       <div className="grid grid-cols-3 gap-2 pt-2 text-xs text-muted-foreground">
                         <div>Protein: <span className="text-foreground font-semibold">{d.protein_g}g</span></div>
                         <div>Carbs: <span className="text-foreground font-semibold">{d.carbs_g}g</span></div>
@@ -370,11 +370,12 @@ function Landing() {
                       </div>
                       <div className="pt-2 border-t text-xs space-y-1">
                         <div>
-                          <span className="font-semibold text-accent-foreground">Exercise{d.exercise_time ? ` · ${d.exercise_time}` : ""}:</span> {d.exercise}
+                          <span className="font-semibold text-accent">Exercise{d.exercise_time ? ` · ${d.exercise_time}` : ""}:</span> {d.exercise}
                         </div>
-                        <div><span className="font-semibold text-primary-foreground">Tip:</span> {d.health_tip}</div>
+                        <div><span className="font-semibold text-primary">Tip:</span> {d.health_tip}</div>
                       </div>
                     </CardContent>
+
                   </Card>
                 ))}
               </div>
