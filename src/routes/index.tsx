@@ -14,7 +14,7 @@ import { Leaf, Sparkles, Loader2, Download, RotateCcw } from "lucide-react";
 import jsPDF from "jspdf";
 import {
   ACTIVITY_LEVELS, GOALS, FOOD_PREFERENCES, MEDICAL_CONDITIONS, GENDERS,
-  calcBMI, bmiCategory, idealWeightRange, type DayPlan,
+  calcBMI, bmiCategory, idealWeightRange, idealWeightTarget, type DayPlan,
 } from "@/lib/nutrition";
 import { generatePublicDietPlan } from "@/lib/public-diet.functions";
 
