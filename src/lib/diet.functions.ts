@@ -68,38 +68,34 @@ Return JSON exactly matching this schema:
 ${schema}
 The "days" array MUST contain exactly ${data.duration} objects, day 1 through ${data.duration}. Every meal and the exercise MUST include a specific clock time (e.g. "8:00 AM").`;
 
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("AI service not configured.");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" },
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    );
 
     if (!res.ok) {
       const body = await res.text();
-      if (res.status === 429) throw new Error("Rate limit reached — please try again in a moment.");
-      if (res.status === 402) throw new Error("AI credits exhausted. Please add credits in workspace settings.");
-      throw new Error(`AI request failed [${res.status}]: ${body}`);
+      if (res.status === 429) throw new Error("Gemini rate limit reached — please try again in a moment.");
+      throw new Error(`Gemini request failed [${res.status}]: ${body}`);
     }
     const json = await res.json();
-    const content = json.choices?.[0]?.message?.content;
-    if (!content) throw new Error("Empty AI response");
+    const content = json.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+    if (!content) throw new Error("Empty Gemini response");
     let parsed: { days: DayPlan[] };
-    try { parsed = JSON.parse(content); } catch { throw new Error("AI returned invalid JSON"); }
+    try { parsed = JSON.parse(content); } catch { throw new Error("Gemini returned invalid JSON"); }
     if (!parsed.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
-      throw new Error("AI returned no plan days");
+      throw new Error("Gemini returned no plan days");
     }
 
     const title = `${data.duration}-Day ${profile.goal || "Plan"} — ${new Date().toLocaleDateString()}`;
@@ -119,18 +115,20 @@ The "days" array MUST contain exactly ${data.duration} objects, day 1 through ${
     // Auto-generate shopping list grouped by category
     const shoppingPrompt = `From this meal plan, generate a weekly shopping list grouped by category (Proteins, Grains, Vegetables, Fruits, Dairy, Pantry). Return JSON: {"categories":[{"name":"Proteins","items":["chicken breast","eggs"]}]}\n\nMeals:\n${parsed.days.slice(0, 7).map(d => `Day ${d.day}: ${d.breakfast}; ${d.lunch}; ${d.dinner}`).join("\n")}`;
     try {
-      const sRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          messages: [{ role: "user", content: shoppingPrompt }],
-          response_format: { type: "json_object" },
-        }),
-      });
+      const sRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: shoppingPrompt }] }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        },
+      );
       if (sRes.ok) {
         const sJson = await sRes.json();
-        const sContent = sJson.choices?.[0]?.message?.content;
+        const sContent = sJson.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
         if (sContent) {
           const items = JSON.parse(sContent);
           await supabase.from("shopping_lists").insert({
