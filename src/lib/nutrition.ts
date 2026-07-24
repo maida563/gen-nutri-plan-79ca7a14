@@ -6,9 +6,9 @@ export function calcBMI(heightCm: number, weightKg: number): number {
 
 export function bmiCategory(bmi: number): { label: string; tone: string } {
   if (!bmi) return { label: "—", tone: "text-muted-foreground" };
-  if (bmi < 18.5) return { label: "Underweight", tone: "text-accent-foreground" };
-  if (bmi < 25) return { label: "Healthy", tone: "text-primary-foreground" };
-  if (bmi < 30) return { label: "Overweight", tone: "text-accent-foreground" };
+  if (bmi < 18.5) return { label: "You are underweight", tone: "text-accent-foreground" };
+  if (bmi < 25) return { label: "Normal", tone: "text-primary-foreground" };
+  if (bmi < 30) return { label: "Obese", tone: "text-accent-foreground" };
   return { label: "Obese", tone: "text-destructive" };
 }
 
