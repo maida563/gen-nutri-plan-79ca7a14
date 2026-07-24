@@ -1,7 +1,7 @@
 export function calcBMI(heightCm: number, weightKg: number): number {
-  if (!heightCm || !weightKg) return 0;
+  if (!heightCm || !weightKg || heightCm <= 0 || weightKg <= 0) return 0;
   const m = heightCm / 100;
-  return +(weightKg / (m * m)).toFixed(1);
+  return Math.round((weightKg / (m * m)) * 10) / 10;
 }
 
 export function bmiCategory(bmi: number): { label: string; tone: string } {
@@ -14,9 +14,16 @@ export function bmiCategory(bmi: number): { label: string; tone: string } {
 
 /** Ideal weight range (kg) for a healthy BMI 18.5–24.9 */
 export function idealWeightRange(heightCm: number): { min: number; max: number } | null {
-  if (!heightCm) return null;
+  if (!heightCm || heightCm <= 0) return null;
   const m = heightCm / 100;
   return { min: +(18.5 * m * m).toFixed(1), max: +(24.9 * m * m).toFixed(1) };
+}
+
+/** Target ideal weight (kg) at BMI 22 — midpoint of the healthy range */
+export function idealWeightTarget(heightCm: number): number | null {
+  if (!heightCm || heightCm <= 0) return null;
+  const m = heightCm / 100;
+  return +(22 * m * m).toFixed(1);
 }
 
 export function currentSeason(country: string, date = new Date()): string {

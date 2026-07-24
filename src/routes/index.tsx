@@ -14,7 +14,7 @@ import { Leaf, Sparkles, Loader2, Download, RotateCcw } from "lucide-react";
 import jsPDF from "jspdf";
 import {
   ACTIVITY_LEVELS, GOALS, FOOD_PREFERENCES, MEDICAL_CONDITIONS, GENDERS,
-  calcBMI, bmiCategory, idealWeightRange, type DayPlan,
+  calcBMI, bmiCategory, idealWeightRange, idealWeightTarget, type DayPlan,
 } from "@/lib/nutrition";
 import { generatePublicDietPlan } from "@/lib/public-diet.functions";
 
@@ -298,22 +298,36 @@ function Landing() {
 
                 {bmi > 0 && (() => {
                   const ideal = idealWeightRange(h);
+                  const target = idealWeightTarget(h);
+                  const inRange = ideal ? w >= ideal.min && w <= ideal.max : false;
                   const off = ideal ? (w < ideal.min ? +(ideal.min - w).toFixed(1) : w > ideal.max ? +(w - ideal.max).toFixed(1) : 0) : 0;
+                  const toTarget = target ? +(target - w).toFixed(1) : 0;
                   return (
                     <div className="rounded-lg border bg-secondary/60 p-4 space-y-2">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-xs text-muted-foreground">Your BMI</div>
-                          <div className="text-3xl font-extrabold text-primary">{bmi}</div>
+                          <div className="text-3xl font-extrabold text-primary">{bmi.toFixed(1)}</div>
                         </div>
                         <div className={`text-sm font-semibold ${cat.tone}`}>{cat.label}</div>
                       </div>
-                      {ideal && (
-                        <div className="text-xs text-muted-foreground border-t pt-2">
-                          Ideal weight range for your height:{" "}
-                          <span className="font-semibold text-foreground">{ideal.min}–{ideal.max} kg</span>
-                          {off > 0 && (
-                            <> · You're about <span className="font-semibold text-accent-foreground">{off} kg {w < ideal.min ? "below" : "above"}</span> the healthy range.</>
+                      {ideal && target && (
+                        <div className="text-xs text-muted-foreground border-t pt-2 space-y-1">
+                          <div>
+                            Healthy weight range:{" "}
+                            <span className="font-semibold text-foreground">{ideal.min}–{ideal.max} kg</span>
+                            {" · "}Ideal target: <span className="font-semibold text-foreground">{target} kg</span>
+                          </div>
+                          {inRange ? (
+                            <div>You're within the healthy range — great, focus on maintaining.</div>
+                          ) : (
+                            <div>
+                              You're about <span className="font-semibold text-accent-foreground">{off} kg {w < ideal.min ? "below" : "above"}</span> the healthy range
+                              {" · "}
+                              {toTarget > 0
+                                ? <>gain <span className="font-semibold text-foreground">{toTarget} kg</span> to reach your ideal.</>
+                                : <>lose <span className="font-semibold text-foreground">{Math.abs(toTarget)} kg</span> to reach your ideal.</>}
+                            </div>
                           )}
                         </div>
                       )}
