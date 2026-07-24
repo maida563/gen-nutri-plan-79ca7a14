@@ -72,7 +72,7 @@ The "days" array MUST contain exactly ${data.duration} objects, day 1 through ${
     if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +116,7 @@ The "days" array MUST contain exactly ${data.duration} objects, day 1 through ${
     const shoppingPrompt = `From this meal plan, generate a weekly shopping list grouped by category (Proteins, Grains, Vegetables, Fruits, Dairy, Pantry). Return JSON: {"categories":[{"name":"Proteins","items":["chicken breast","eggs"]}]}\n\nMeals:\n${parsed.days.slice(0, 7).map(d => `Day ${d.day}: ${d.breakfast}; ${d.lunch}; ${d.dinner}`).join("\n")}`;
     try {
       const sRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
