@@ -299,9 +299,7 @@ function Landing() {
                 {bmi > 0 && (() => {
                   const ideal = idealWeightRange(h);
                   const target = idealWeightTarget(h);
-                  const inRange = ideal ? w >= ideal.min && w <= ideal.max : false;
-                  const off = ideal ? (w < ideal.min ? +(ideal.min - w).toFixed(1) : w > ideal.max ? +(w - ideal.max).toFixed(1) : 0) : 0;
-                  const toTarget = target ? +(target - w).toFixed(1) : 0;
+                  const diff = target ? +(Math.abs(w - target)).toFixed(1) : 0;
                   return (
                     <div className="rounded-lg border bg-secondary/60 p-4 space-y-2">
                       <div className="flex items-center justify-between">
@@ -318,16 +316,12 @@ function Landing() {
                             <span className="font-semibold text-foreground">{ideal.min}–{ideal.max} kg</span>
                             {" · "}Ideal target: <span className="font-semibold text-foreground">{target} kg</span>
                           </div>
-                          {inRange ? (
-                            <div>You're within the healthy range — great, focus on maintaining.</div>
+                          {diff <= 0.2 ? (
+                            <div>You're at your ideal weight. Keep it up! 🎉</div>
+                          ) : w > target ? (
+                            <div>Lose <span className="font-semibold text-foreground">{diff} kg</span> to reach your ideal target.</div>
                           ) : (
-                            <div>
-                              You're about <span className="font-semibold text-accent-foreground">{off} kg {w < ideal.min ? "below" : "above"}</span> the healthy range
-                              {" · "}
-                              {toTarget > 0
-                                ? <>gain <span className="font-semibold text-foreground">{toTarget} kg</span> to reach your ideal.</>
-                                : <>lose <span className="font-semibold text-foreground">{Math.abs(toTarget)} kg</span> to reach your ideal.</>}
-                            </div>
+                            <div>Gain <span className="font-semibold text-foreground">{diff} kg</span> to reach your ideal target.</div>
                           )}
                         </div>
                       )}
